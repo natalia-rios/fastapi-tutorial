@@ -1,12 +1,14 @@
 from typing import Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import Body, FastAPI, Path, Query
 
 class Item(BaseModel):
     name: str
-    description: Union[str, None] = None
-    price: float
+    description: Union[str, None] = Field(
+        default=None, title="The description of the item", max_length=300
+    )
+    price: float = Field(gt=0, description="The price must the greater than zero")
     tax: Union[float, None] = None
 
 
