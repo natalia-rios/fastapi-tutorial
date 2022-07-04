@@ -1,14 +1,13 @@
-from typing import Union
+from typing import Union, List
 
-from pydantic import BaseModel
-from fastapi import FastAPI
+from pydantic import BaseModel, Required
+from fastapi import FastAPI, Query
 
 class Item(BaseModel):
     name: str
     description: Union[str, None] = None
     price: float
     tax: Union[float, None] = None
-
 
 
 app = FastAPI()
@@ -62,3 +61,12 @@ async def update_item(item_id: int, item: Item, q: Union[str, None] = None):
     if q:
         result.update({"q": q})
     return result
+
+@app.get("/items")
+async def read_items(
+    hidden_query: Union[str, None] = Query(default=None, include_in_schema=False)
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
