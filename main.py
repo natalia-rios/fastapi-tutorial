@@ -1,7 +1,7 @@
 from typing import Union
 
 from pydantic import BaseModel
-from fastapi import FastAPI, Path, Query
+from fastapi import Body, FastAPI, Path, Query
 
 class Item(BaseModel):
     name: str
@@ -9,6 +9,10 @@ class Item(BaseModel):
     price: float
     tax: Union[float, None] = None
 
+
+class User(BaseModel):
+    username: str
+    full_name: Union[str, None] = None
 
 app = FastAPI()
 
@@ -63,17 +67,15 @@ async def create_item(item: Item):
     return item_dict
 
 @app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Item, q: Union[str, None] = None):
-    result = {"item_id": item_id, **item.dict()}
+async def update_item(
+    *,
+    item_id: int,
+    item: Item = Body(embed=True),
+    user: User,
+    importance: int = Body(),
+    q: Union[str, None] = None
+    ):
+    results = {"item_id": item_id, "item": item, "user": user, "importance": importance}
     if q:
-        result.update({"q": q})
-    return result
-
-@app.get("/items")
-async def read_items(
-    hidden_query: Union[str, None] = Query(default=None, include_in_schema=False)
-):
-    if hidden_query:
-        return {"hidden_query": hidden_query}
-    else:
-        return {"hidden_query": "Not found"}
+        results.update({"q": q})
+    return results
