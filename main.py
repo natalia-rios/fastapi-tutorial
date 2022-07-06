@@ -1,4 +1,6 @@
+from datetime import datetime, time, timedelta
 from typing import Dict, List, Set, Union
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from fastapi import Body, FastAPI, Path, Query
@@ -126,3 +128,24 @@ async def create_user(user_in: UserIn):
 @app.get("/keyword-weights/", response_model=Dict[str, float])
 async def read_keyword_weights():
     return {"foo": 2.3, "bar": 3.4}
+
+@app.put("/items/{item_id}")
+async def read_items(
+    item_id: UUID,
+    start_datetime: Union[datetime, None] = Body(default=None),
+    end_datetime: Union[datetime, None] = Body(default=None),
+    repeat_at: Union[time, None] = Body(default=None),
+    process_after: Union[timedelta, None] = Body(default=None),
+):
+    start_process = start_datetime + process_after
+    duration = end_datetime - start_process
+    return {
+        "item_id": item_id,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+        "repeat_at": repeat_at,
+        "process_after": process_after,
+        "start_process": start_process,
+        "duration": duration,
+    }
+
