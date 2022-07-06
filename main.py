@@ -1,6 +1,6 @@
 from typing import Dict, List, Set, Union
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from fastapi import Body, FastAPI, Path, Query
 
 
@@ -9,30 +9,57 @@ class Image(BaseModel):
     name: str
 
 
+class BaseItem(BaseModel):
+    description: str
+    type: str
+
+
+class CarItem(BaseItem):
+    type = "car"
+
+
+class PlaneItem(BaseItem):
+    type = "plane"
+    size: int
+
+
 class Item(BaseModel):
-    name: str = Field(example="Foo")
-    description: Union[str, None] = Field(
-        default=None, title="The description of the item", max_length=300, example="A very nice Item"
-    )
-    price: float = Field(gt=0, description="The price must the greater than zero", example=35.4)
-    tax: Union[float, None] = Field(default=None, example=3.2)
-    tags: Set[str] = set()
-    image: Union[List[Image], None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "name": "Foo",
-                "description": "A very nice Item",
-                "price": 35.4,
-                "tax": 3.2,
-            }
-        }
+    name: str
+    description: str
 
 
-class User(BaseModel):
+items = [
+    {"name": "Foo", "description": "There comes my hero"},
+    {"name": "Red", "description": "It's my aeroplane"},
+]
+
+class UserBase(BaseModel):
     username: str
+    email: EmailStr
     full_name: Union[str, None] = None
+
+
+class UserIn(UserBase):
+    password: str
+
+
+class UserOut(UserBase):
+    pass
+
+
+class UserInDB(UserBase):
+    hashed_password: str
+
+
+def fake_password_hasher(raw_password: str):
+    return "supersecret" + raw_password
+
+
+def fake_save_user(user_in: UserIn):
+    hashed_password = fake_password_hasher(user_in.password)
+    user_in_db = UserInDB(**user_in.dict(), hashed_password=hashed_password)
+    print("User saved! ... not really")
+    return user_in_db
 
 
 class Offer(BaseModel):
@@ -49,17 +76,10 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/items/{item_id}")
-async def read_items(
-    *,
-    item_id: int = Path(title="The ID of the item to get", gt=0, le=1000),
-    q: str,
-    size: float = Query(gt=0, lt=10.5)
-):
-    results = {"item_id": item_id}
-    if q:
-        results.update({"q": q})
-    return results
+@app.get("/items/", response_model=List[Item])
+async def read_items():
+    return items
+
 
 @app.get("/users/me")
 async def read_user_me():
@@ -86,51 +106,6 @@ async def read_user_item(
         )
     return item
 
-@app.post("/items/")
-async def create_item(item: Item):
-    item_dict = item.dict()
-    if item.tax:
-        price_with_tax = item.price + item.tax
-        item_dict.update({"price_with_tax": price_with_tax})
-    return item_dict
-
-@app.put("/items/{item_id}")
-async def update_item(
-    *,
-    item_id: int,
-    item: Item = Body(
-        examples={
-            "normal": {
-                "summary": "A normal example",
-                "description": "A **normal** item works correctly.",
-                "value": {
-                    "name": "Foo",
-                    "description": "A very nice Item",
-                    "price": 35.4,
-                    "tax": 3.2,
-                },
-            },
-            "converted": {
-                "summary": "An example with converted data",
-                "description": "FastAPI can convert price `strings` to actual `numbers` automatically",
-                "value": {
-                    "name": "Bar",
-                    "price": "35.4",
-                },
-            },
-            "invalid": {
-                "summary": "Invalid data is rejected with an error",
-                "value": {
-                    "name": "Baz",
-                    "price": "thirty five point four",
-                },
-            },
-        },
-    ),
-):
-    results = {"item_id": item_id, "item": item}
-    return results
-
 @app.post("/offers/")
 async def create_offer(offer: Offer):
     return offer
@@ -142,3 +117,12 @@ async def create_multiple_images(images: List[Image]):
 @app.post("/index-weights/")
 async def create_index_weights(weights: Dict[int, float]):
     return weights
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user_in: UserIn):
+    user_saved = fake_save_user(user_in)
+    return user_saved
+
+@app.get("/keyword-weights/", response_model=Dict[str, float])
+async def read_keyword_weights():
+    return {"foo": 2.3, "bar": 3.4}
