@@ -1,7 +1,13 @@
-from typing import Union
+from typing import Dict, List, Set, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 from fastapi import Body, FastAPI, Path, Query
+
+
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
 
 class Item(BaseModel):
     name: str
@@ -10,11 +16,21 @@ class Item(BaseModel):
     )
     price: float = Field(gt=0, description="The price must the greater than zero")
     tax: Union[float, None] = None
+    tags: Set[str] = set()
+    image: Union[List[Image], None] = None
 
 
 class User(BaseModel):
     username: str
     full_name: Union[str, None] = None
+
+
+class Offer(BaseModel):
+    name: str
+    description: Union[str, None] = None
+    price: float
+    items: List[Item]
+
 
 app = FastAPI()
 
@@ -81,3 +97,16 @@ async def update_item(
     if q:
         results.update({"q": q})
     return results
+
+@app.post("/offers/")
+async def create_offer(offer: Offer):
+    return offer
+
+@app.post("/images/multiple")
+async def create_multiple_images(images: List[Image]):
+    return images
+
+@app.post("/index-weights/")
+async def create_index_weights(weights: Dict[int, float]):
+    return weights
+    
