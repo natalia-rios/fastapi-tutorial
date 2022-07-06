@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Union
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
-from fastapi import Body, Cookie, FastAPI, Header, Path, Query
+from fastapi import Body, Cookie, FastAPI, Header, Path, status, Query
 
 
 class Image(BaseModel):
@@ -138,7 +138,7 @@ async def create_user(user_in: UserIn):
 async def read_keyword_weights():
     return {"foo": 2.3, "bar": 3.4}
 
-@app.post("/items/", response_model=Item)
+@app.post("/items/", response_model=Item, status_code=status.HTTP_201_CREATED)
 async def create_item(item: Item):
     return item
 
