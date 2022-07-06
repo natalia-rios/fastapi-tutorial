@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Union
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
-from fastapi import Body, Cookie, FastAPI, Header, Path, status, Query
+from fastapi import Body, Cookie, FastAPI, Form, Header, Path, status, Query
 
 
 class Image(BaseModel):
@@ -96,38 +96,6 @@ async def read_items(x_token: Union[List[str], None] = Header(default=None)):
 async def read_user_me():
     return {"user_id": "the current user"}
 
-@app.get("/users/{user_id}")
-async def read_user(user_id: str):
-    return {"user_id": user_id}
-
-@app.get("/files/{file_path:path}")
-async def read_file(file_path: str):
-    return {"file_path": file_path}
-
-@app.get("/users/{user_id}/items/{item_id}")
-async def read_user_item(
-    user_id: int, item_id: str, q: Union[str, None] = None, short: bool = False
-):
-    item = {"item_id": item_id, "owner_id": user_id}
-    if q:
-        item.update({"q": q})
-    if not short:
-        item.update(
-            {"description": "This is an amazing item that has a long description"}
-        )
-    return item
-
-@app.post("/offers/")
-async def create_offer(offer: Offer):
-    return offer
-
-@app.post("/images/multiple")
-async def create_multiple_images(images: List[Image]):
-    return images
-
-@app.post("/index-weights/")
-async def create_index_weights(weights: Dict[int, float]):
-    return weights
 
 @app.post("/user/", response_model=UserOut)
 async def create_user(user_in: UserIn):
@@ -158,3 +126,7 @@ async def read_item_name(item_id: str):
 @app.get("/items/{item_id}/public", response_model=Item, response_model_exclude={"tax"})
 async def read_item_public_data(item_id: str):
     return items[item_id]
+
+@app.post("/login/")
+async def login(username: str = Form(), password: str = Form()):
+    return {"username": username}
