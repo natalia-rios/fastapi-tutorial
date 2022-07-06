@@ -10,14 +10,24 @@ class Image(BaseModel):
 
 
 class Item(BaseModel):
-    name: str
+    name: str = Field(example="Foo")
     description: Union[str, None] = Field(
-        default=None, title="The description of the item", max_length=300
+        default=None, title="The description of the item", max_length=300, example="A very nice Item"
     )
-    price: float = Field(gt=0, description="The price must the greater than zero")
-    tax: Union[float, None] = None
+    price: float = Field(gt=0, description="The price must the greater than zero", example=35.4)
+    tax: Union[float, None] = Field(default=None, example=3.2)
     tags: Set[str] = set()
     image: Union[List[Image], None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Foo",
+                "description": "A very nice Item",
+                "price": 35.4,
+                "tax": 3.2,
+            }
+        }
 
 
 class User(BaseModel):
@@ -88,14 +98,37 @@ async def create_item(item: Item):
 async def update_item(
     *,
     item_id: int,
-    item: Item = Body(embed=True),
-    user: User,
-    importance: int = Body(),
-    q: Union[str, None] = None
-    ):
-    results = {"item_id": item_id, "item": item, "user": user, "importance": importance}
-    if q:
-        results.update({"q": q})
+    item: Item = Body(
+        examples={
+            "normal": {
+                "summary": "A normal example",
+                "description": "A **normal** item works correctly.",
+                "value": {
+                    "name": "Foo",
+                    "description": "A very nice Item",
+                    "price": 35.4,
+                    "tax": 3.2,
+                },
+            },
+            "converted": {
+                "summary": "An example with converted data",
+                "description": "FastAPI can convert price `strings` to actual `numbers` automatically",
+                "value": {
+                    "name": "Bar",
+                    "price": "35.4",
+                },
+            },
+            "invalid": {
+                "summary": "Invalid data is rejected with an error",
+                "value": {
+                    "name": "Baz",
+                    "price": "thirty five point four",
+                },
+            },
+        },
+    ),
+):
+    results = {"item_id": item_id, "item": item}
     return results
 
 @app.post("/offers/")
@@ -109,4 +142,3 @@ async def create_multiple_images(images: List[Image]):
 @app.post("/index-weights/")
 async def create_index_weights(weights: Dict[int, float]):
     return weights
-    
