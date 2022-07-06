@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Union
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
-from fastapi import Body, FastAPI, Path, Query
+from fastapi import Body, Cookie, FastAPI, Path, Query
 
 
 class Image(BaseModel):
@@ -78,10 +78,9 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/items/", response_model=List[Item])
-async def read_items():
-    return items
-
+@app.get("/items/")
+async def read_items(ads_id: Union[str, None] = Cookie(default=None)):
+    return{"ads:id": ads_id}
 
 @app.get("/users/me")
 async def read_user_me():
