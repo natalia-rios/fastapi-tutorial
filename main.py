@@ -132,11 +132,14 @@ async def login(username: str = Form(), password: str = Form()):
     return {"username": username}
 
 @app.post("/files/")
-async def create_files(
-    files: List[bytes] = File(description="Multiple files as bytes"),
+async def create_file(
+    file: bytes = File(), fileb: UploadFile = File(), token: str = Form()
 ):
-    return {"file_sizes": [len(file) for file in files]}
-
+    return {
+        "file_size": len(file),
+        "token": token,
+        "fileb_content_type": fileb.content_type,
+    }
 
 @app.post("/uploadfiles/")
 async def create_upload_files(
