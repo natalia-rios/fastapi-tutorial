@@ -1,16 +1,28 @@
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exception_handlers import (
     http_exception_handler,
     request_validation_exception_handler,
 )
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from datetime import datetime
 from pydantic import BaseModel
 from enum import Enum
+from typing import Union
 
 
 app = FastAPI()
+
+
+fake_db = {}
+
+class Item(BaseModel):
+    title: str
+    timestamp: datetime
+    description: Union[str, None] = None
 
 
 class Tags(Enum):
@@ -46,11 +58,6 @@ async def validation_exception_handler(request, exc):
     return await request_validation_exception_handler(request, exc)
 
 
-class Item(BaseModel):
-    title: str
-    size: int
-
-
 @app.get("/items/", tags=[Tags.items])
 async def get_items():
     return ["Portal gun", "Plumbus"]
@@ -59,7 +66,7 @@ async def get_items():
 @app.get("/elements/", tags=["items"], deprecated=True)
 async def read_elements():
     return [{"item_id": "Foo"}]
-    
+
 
 @app.get("/users/", tags=[Tags.users])
 async def read_users():
@@ -101,3 +108,10 @@ async def read_unicorn(name: str):
     if name == "yolo":
         raise UnicornException(name=name)
     return {"unicorn_name": name}
+
+
+@app.put("/items/{id}")
+def update_item(id: str, item: Item):
+    json_compatible_item_data = jsonable_encoder(item)
+    fake_db[id] = json_compatible_item_data
+
