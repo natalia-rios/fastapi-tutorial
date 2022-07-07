@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -7,9 +7,15 @@ from fastapi.exception_handlers import (
     request_validation_exception_handler,
 )
 from pydantic import BaseModel
+from enum import Enum
 
 
 app = FastAPI()
+
+
+class Tags(Enum):
+    items = "items"
+    users = "users"
 
 
 items = {"foo": "The Foo Wrestlers"}
@@ -45,11 +51,19 @@ class Item(BaseModel):
     size: int
 
 
-@app.get("/items/{item_id}")
-async def read_item(item_id: int):
-    if item_id == 3:
-        raise HTTPException(status_code=418, detail="Nope! I don't like 3.")
-    return {"item_id": item_id}
+@app.get("/items/", tags=[Tags.items])
+async def get_items():
+    return ["Portal gun", "Plumbus"]
+
+
+@app.get("/elements/", tags=["items"], deprecated=True)
+async def read_elements():
+    return [{"item_id": "Foo"}]
+    
+
+@app.get("/users/", tags=[Tags.users])
+async def read_users():
+    return ["Rick", "Morty"]
 
 
 @app.get("/items-header/{item_id}")
@@ -63,8 +77,22 @@ async def read_item_header(item_id: str):
     return {"item": items[item_id]}
 
 
-@app.post("/items/")
+@app.post(
+    "/items/",
+    response_model=Item,
+    summary="Create an item",
+    response_description="The created item",
+)
 async def create_item(item: Item):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
     return item
 
 
